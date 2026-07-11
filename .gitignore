@@ -1,3 +1,49 @@
+# Credenciais e segredos
+*.json.key
+service-account*.json
+credentials*.json
+.env
+.env.*
+secrets/
+keys/
+
+# Google Cloud
+.gcloud/
+application_default_credentials.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Dados grandes e temporários
+data/raw/
+data/tmp/
+*.parquet
+*.avro
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Logs
+*.log
+logs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

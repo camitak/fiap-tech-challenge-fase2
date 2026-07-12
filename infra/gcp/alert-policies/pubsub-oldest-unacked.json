@@ -1,0 +1,29 @@
+{
+  "displayName": "FIAP - PubSub mensagem antiga",
+  "combiner": "OR",
+  "enabled": true,
+  "conditions": [
+    {
+      "displayName": "Mensagem não confirmada com mais de 300 segundos",
+      "conditionThreshold": {
+        "filter": "resource.type = \"pubsub_subscription\" AND metric.type = \"pubsub.googleapis.com/subscription/oldest_unacked_message_age\" AND resource.labels.subscription_id = \"alfabetizacao-eventos-dataflow\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 300,
+        "duration": "300s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX"
+          }
+        ],
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "documentation": {
+    "content": "A mensagem não confirmada mais antiga ultrapassou cinco minutos. Verifique latência, backlog e estado do consumidor Dataflow.",
+    "mimeType": "text/markdown"
+  }
+}

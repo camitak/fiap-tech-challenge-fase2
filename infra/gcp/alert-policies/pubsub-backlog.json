@@ -1,0 +1,29 @@
+{
+  "displayName": "FIAP - PubSub backlog alto",
+  "combiner": "OR",
+  "enabled": true,
+  "conditions": [
+    {
+      "displayName": "Mensagens não entregues acima de 100 por 5 minutos",
+      "conditionThreshold": {
+        "filter": "resource.type = \"pubsub_subscription\" AND metric.type = \"pubsub.googleapis.com/subscription/num_undelivered_messages\" AND resource.labels.subscription_id = \"alfabetizacao-eventos-dataflow\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 100,
+        "duration": "300s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX"
+          }
+        ],
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "documentation": {
+    "content": "A assinatura do Dataflow acumulou mais de 100 mensagens por pelo menos cinco minutos. Verifique se o job Dataflow está ativo e saudável.",
+    "mimeType": "text/markdown"
+  }
+}

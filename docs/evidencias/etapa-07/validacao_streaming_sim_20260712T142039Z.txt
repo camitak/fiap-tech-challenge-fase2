@@ -1,0 +1,132 @@
+CREATE OR REPLACE TABLE
+  `fiap-tc-f2-camila-takemoto.alfabetizacao_ops.latest_streaming_validation` AS
+WITH
+bronze AS (
+  SELECT *
+  FROM `fiap-tc-f2-camila-takemoto.alfabetizacao_bronze.streaming_eventos_raw`
+  WHERE simulation_run_id = 'sim_20260712T142039Z'
+),
+silver AS (
+  SELECT *
+  FROM `fiap-tc-f2-camila-takemoto.alfabetizacao_silver.streaming_eventos`
+  WHERE simulation_run_id = 'sim_20260712T142039Z'
+),
+quarantine AS (
+  SELECT *
+  FROM `fiap-tc-f2-camila-takemoto.alfabetizacao_quarantine.streaming_eventos`
+  WHERE simulation_run_id = 'sim_20260712T142039Z'
+),
+checks AS (
+  SELECT
+    'RECONCILIATION' AS check_type,
+    'bronze_total_eventos' AS object_name,
+    CAST(15 AS INT64) AS expected_value,
+    COUNT(*) AS actual_value
+  FROM bronze
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'silver_eventos_validos',
+    CAST(12 AS INT64),
+    COUNT(DISTINCT event_id)
+  FROM silver
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'quarentena_eventos_invalidos',
+    CAST(3 AS INT64),
+    COUNT(DISTINCT event_id)
+  FROM quarantine
+
+  UNION ALL
+
+  SELECT
+    'UNIQUENESS',
+    'silver_event_id',
+    0,
+    COUNT(*) - COUNT(DISTINCT event_id)
+  FROM silver
+
+  UNION ALL
+
+  SELECT
+    'VALIDITY',
+    'silver_campos_obrigatorios',
+    0,
+    COUNTIF(
+      event_id IS NULL OR
+      event_type IS NULL OR
+      event_time IS NULL OR
+      entity_type IS NULL OR
+      entity_id IS NULL OR
+      source IS NULL
+    )
+  FROM silver
+
+  UNION ALL
+
+  SELECT
+    'VALIDITY',
+    'silver_tipos_evento',
+    0,
+    COUNTIF(event_type NOT IN (
+      'indicador_municipio_atualizado',
+      'indicador_uf_atualizado',
+      'meta_municipio_atualizada',
+      'meta_uf_atualizada',
+      'resultado_aluno_recebido'
+    ))
+  FROM silver
+
+  UNION ALL
+
+  SELECT
+    'VALIDITY',
+    'silver_percentuais',
+    0,
+    COUNTIF(
+      (taxa_alfabetizacao IS NOT NULL AND taxa_alfabetizacao NOT BETWEEN 0 AND 100) OR
+      (meta_alfabetizacao IS NOT NULL AND meta_alfabetizacao NOT BETWEEN 0 AND 100) OR
+      (percentual_participacao IS NOT NULL AND percentual_participacao NOT BETWEEN 0 AND 100)
+    )
+  FROM silver
+
+  UNION ALL
+
+  SELECT
+    'CONSISTENCY',
+    'quarentena_com_motivo',
+    0,
+    COUNTIF(error_code IS NULL OR error_message IS NULL)
+  FROM quarantine
+)
+SELECT
+  check_type,
+  object_name,
+  expected_value,
+  actual_value,
+  IF(expected_value = actual_value, 'OK', 'FAIL') AS status,
+  'sim_20260712T142039Z' AS simulation_run_id,
+  CURRENT_TIMESTAMP() AS executed_at
+FROM checks; -- at [3:1]
+Created fiap-tc-f2-camila-takemoto.alfabetizacao_ops.latest_streaming_validation
+
+SELECT *
+FROM `fiap-tc-f2-camila-takemoto.alfabetizacao_ops.latest_streaming_validation`
+ORDER BY check_type, object_name; -- at [119:1]
++----------------+------------------------------+----------------+--------------+--------+----------------------+---------------------+
+|   check_type   |         object_name          | expected_value | actual_value | status |  simulation_run_id   |     executed_at     |
++----------------+------------------------------+----------------+--------------+--------+----------------------+---------------------+
+| CONSISTENCY    | quarentena_com_motivo        |              0 |            0 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| RECONCILIATION | bronze_total_eventos         |             15 |           15 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| RECONCILIATION | quarentena_eventos_invalidos |              3 |            3 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| RECONCILIATION | silver_eventos_validos       |             12 |           12 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| UNIQUENESS     | silver_event_id              |              0 |            0 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| VALIDITY       | silver_campos_obrigatorios   |              0 |            0 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| VALIDITY       | silver_percentuais           |              0 |            0 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
+| VALIDITY       | silver_tipos_evento          |              0 |            0 | OK     | sim_20260712T142039Z | 2026-07-12 14:23:54 |
++----------------+------------------------------+----------------+--------------+--------+----------------------+---------------------+

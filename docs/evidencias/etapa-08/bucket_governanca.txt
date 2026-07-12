@@ -1,0 +1,15 @@
+lifecycle_config:
+  rule:
+  - action:
+      type: Delete
+    condition:
+      age: 1
+      matchesPrefix:
+      - tmp/
+location: US
+name: fiap-tc-f2-camila-takemoto-alfabetizacao-bronze
+public_access_prevention: enforced
+soft_delete_policy:
+  effectiveTime: '2026-07-11T22:08:00.209000+00:00'
+  retentionDurationSeconds: '604800'
+uniform_bucket_level_access: true

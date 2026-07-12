@@ -1,0 +1,29 @@
+{
+  "displayName": "FIAP - Dataflow system lag alto",
+  "combiner": "OR",
+  "enabled": true,
+  "conditions": [
+    {
+      "displayName": "System lag acima de 300 segundos",
+      "conditionThreshold": {
+        "filter": "resource.type = \"dataflow_job\" AND metric.type = \"dataflow.googleapis.com/job/system_lag\"",
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 300,
+        "duration": "300s",
+        "aggregations": [
+          {
+            "alignmentPeriod": "60s",
+            "perSeriesAligner": "ALIGN_MAX"
+          }
+        ],
+        "trigger": {
+          "count": 1
+        }
+      }
+    }
+  ],
+  "documentation": {
+    "content": "Um job Dataflow streaming apresentou system lag acima de cinco minutos. Verifique backlog, workers, erros e gargalos no pipeline.",
+    "mimeType": "text/markdown"
+  }
+}

@@ -13,7 +13,10 @@ EVIDENCE_DIR="${REPO_ROOT}/docs/evidencias/etapa-08"
 OUTPUT_FILE="${EVIDENCE_DIR}/validacao_observabilidade.txt"
 
 mkdir -p "${EVIDENCE_DIR}"
-[[ -f "${SQL_FILE}" ]] || { echo "Arquivo SQL ausente: ${SQL_FILE}" >&2; exit 1; }
+[[ -f "${SQL_FILE}" ]] || {
+  echo "Arquivo SQL ausente: ${SQL_FILE}" >&2
+  exit 1
+}
 
 REQUIRED_OBJECTS=(
   silver_validation_history
@@ -27,13 +30,22 @@ REQUIRED_OBJECTS=(
   vw_bigquery_usage_summary
 )
 
+MISSING_OBJECTS=()
 for OBJECT_NAME in "${REQUIRED_OBJECTS[@]}"; do
-  bq show \
+  if ! bq show \
     --project_id="${PROJECT_ID}" \
     "${PROJECT_ID}:alfabetizacao_ops.${OBJECT_NAME}" \
-    >/dev/null 2>&1 \
-    || { echo "Objeto ausente: ${OBJECT_NAME}" >&2; exit 1; }
+    >/dev/null 2>&1; then
+    MISSING_OBJECTS+=("${OBJECT_NAME}")
+  fi
 done
+
+if (( ${#MISSING_OBJECTS[@]} > 0 )); then
+  echo "Objetos de observabilidade ausentes:" >&2
+  printf '  - %s\n' "${MISSING_OBJECTS[@]}" >&2
+  echo "Execute novamente ./src/ops/run_observability.sh antes da validação." >&2
+  exit 1
+fi
 
 RENDERED_SQL="$(mktemp "/tmp/validate_observability_${PROJECT_ID}_XXXXXX.sql")"
 
@@ -56,6 +68,14 @@ bq query \
   < "${RENDERED_SQL}"
 
 gcloud config unset auth/impersonate_service_account --quiet || true
+
+bq show \
+  --project_id="${PROJECT_ID}" \
+  "${PROJECT_ID}:alfabetizacao_ops.latest_ops_validation" \
+  >/dev/null 2>&1 || {
+    echo "A tabela latest_ops_validation não foi criada." >&2
+    exit 1
+  }
 
 bq query \
   --project_id="${PROJECT_ID}" \

@@ -205,10 +205,37 @@ CREATE OR REPLACE TABLE
 PARTITION BY DATE(last_event_time)
 CLUSTER BY simulation_run_id, event_type
 AS
+WITH bronze_publish_time AS (
+  -- O horário de publicação é metadado técnico preservado na Bronze.
+  -- A agregação defensiva evita multiplicar linhas caso uma mensagem seja
+  -- reenviada e apareça mais de uma vez na camada bruta.
+  SELECT
+    simulation_run_id,
+    event_id,
+    MIN(pubsub_publish_time) AS pubsub_publish_time
+  FROM `__PROJECT_ID__.alfabetizacao_bronze.streaming_eventos_raw`
+  WHERE
+    simulation_run_id IS NOT NULL
+    AND event_id IS NOT NULL
+  GROUP BY simulation_run_id, event_id
+),
+eventos_com_tempos AS (
+  SELECT
+    silver.simulation_run_id,
+    silver.event_type,
+    silver.event_time,
+    silver.processing_timestamp,
+    bronze.pubsub_publish_time
+  FROM `__PROJECT_ID__.alfabetizacao_silver.streaming_eventos` AS silver
+  LEFT JOIN bronze_publish_time AS bronze
+    USING (simulation_run_id, event_id)
+)
 SELECT
   simulation_run_id,
   event_type,
   COUNT(*) AS event_count,
+  COUNTIF(pubsub_publish_time IS NOT NULL) AS events_with_publish_time,
+  COUNTIF(pubsub_publish_time IS NULL) AS events_without_publish_time,
   MIN(event_time) AS first_event_time,
   MAX(event_time) AS last_event_time,
   ROUND(
@@ -228,16 +255,20 @@ SELECT
   ) AS max_end_to_end_latency_seconds,
   ROUND(
     AVG(
-      TIMESTAMP_DIFF(
-        processing_timestamp,
-        pubsub_publish_time,
-        MILLISECOND
+      IF(
+        pubsub_publish_time IS NULL,
+        NULL,
+        TIMESTAMP_DIFF(
+          processing_timestamp,
+          pubsub_publish_time,
+          MILLISECOND
+        )
       )
     ) / 1000,
     3
   ) AS avg_processing_latency_seconds,
   CURRENT_TIMESTAMP() AS collected_at
-FROM `__PROJECT_ID__.alfabetizacao_silver.streaming_eventos`
+FROM eventos_com_tempos
 GROUP BY simulation_run_id, event_type;
 
 CREATE OR REPLACE TABLE
@@ -258,12 +289,14 @@ SELECT
     8
   ) AS total_tib_billed,
   SUM(COALESCE(total_slot_ms, 0)) AS total_slot_ms,
-  COUNTIF(cache_hit) AS cache_hit_jobs,
+  COUNTIF(COALESCE(cache_hit, FALSE)) AS cache_hit_jobs,
   CURRENT_TIMESTAMP() AS collected_at
-FROM `__REGION_QUALIFIER__`.INFORMATION_SCHEMA.JOBS_BY_PROJECT
+FROM `__PROJECT_ID__`.`__REGION_QUALIFIER__`.INFORMATION_SCHEMA.JOBS_BY_PROJECT
 WHERE
   creation_time >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 180 DAY)
   AND job_type = 'QUERY'
+  AND state = 'DONE'
+  AND (statement_type IS NULL OR statement_type != 'SCRIPT')
 GROUP BY usage_date, user_email, statement_type;
 
 CREATE OR REPLACE VIEW
@@ -276,7 +309,7 @@ SELECT
   SUM(failed_jobs) AS failed_jobs,
   SUM(total_bytes_processed) AS total_bytes_processed,
   SUM(total_bytes_billed) AS total_bytes_billed,
-  ROUND(SUM(total_tib_billed), 8) AS total_tib_billed,
+  ROUND(SUM(total_bytes_billed) / POW(1024, 4), 8) AS total_tib_billed,
   SUM(total_slot_ms) AS total_slot_ms,
   SUM(cache_hit_jobs) AS cache_hit_jobs
 FROM `__PROJECT_ID__.alfabetizacao_ops.bigquery_usage_daily`;

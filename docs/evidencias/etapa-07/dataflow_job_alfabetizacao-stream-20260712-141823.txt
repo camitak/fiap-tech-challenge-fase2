@@ -1,0 +1,9 @@
+job_id=2026-07-12_07_19_42-4826879782752485776
+job_name=alfabetizacao-stream-20260712-141823
+region=us-central1
+state=JOB_STATE_RUNNING
+started_at=2026-07-12T14:19:59Z
+worker_service_account=sa-streaming-dataflow@fiap-tc-f2-camila-takemoto.iam.gserviceaccount.com
+num_workers=1
+max_num_workers=1
+machine_type=e2-standard-2

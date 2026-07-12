@@ -1,0 +1,5 @@
+job_id=2026-07-12_07_19_42-4826879782752485776
+job_name=alfabetizacao-stream-20260712-141823
+region=us-central1
+final_state=JOB_STATE_DRAINED
+stopped_at=2026-07-12T14:38:21Z

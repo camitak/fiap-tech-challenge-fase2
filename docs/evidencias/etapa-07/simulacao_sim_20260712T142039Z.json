@@ -1,0 +1,27 @@
+{
+  "simulation_run_id": "sim_20260712T142039Z",
+  "published_at": "2026-07-12T14:20:46.908648Z",
+  "topic": "projects/fiap-tc-f2-camila-takemoto/topics/alfabetizacao-eventos",
+  "expected_valid": 12,
+  "expected_invalid": 3,
+  "expected_total": 15,
+  "valid_event_ids": [
+    "c0628568-5270-4304-b345-eaa49d1ed1e9",
+    "31ce39f7-3fdf-4496-b8ab-a9e553cd9587",
+    "15a08497-f44d-478b-a153-f89db31bc8f8",
+    "0f4f7bb0-17ce-41a9-bb34-02b2060425e6",
+    "2331ea88-1a60-4193-ac53-589b964d76eb",
+    "2732eded-e798-4b7a-ab2c-958193debff9",
+    "b28b9b57-acbc-4c20-973e-05adcc290c09",
+    "815d4e76-a05d-4fe1-bf4d-d91dc140c624",
+    "b8b694cb-bd6f-4df7-a6ab-3d703dd7557e",
+    "657cdc28-49f4-45ec-ac45-d74789e953fe",
+    "d24c9dbe-4eaf-4cce-a31f-94ac5e2562a5",
+    "50ad1f63-7757-46b3-87c2-5861fa378e9f"
+  ],
+  "invalid_event_ids": [
+    "d1ad2cd4-4354-4425-864d-f4bc0c1bf0a9",
+    "14e22d7c-3b93-4fbe-8964-d5aa0394a385",
+    "a785b223-681e-441c-9c03-edb10b88b295"
+  ]
+}

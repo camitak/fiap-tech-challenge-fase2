@@ -1,0 +1,254 @@
+-- Tech Challenge Fase 2
+-- Etapa 06: validações da camada Gold.
+
+CREATE OR REPLACE TABLE `__PROJECT_ID__.alfabetizacao_ops.latest_gold_validation` AS
+WITH checks AS (
+  SELECT
+    'RECONCILIATION' AS check_type,
+    'kpi_brasil' AS object_name,
+    (SELECT COUNT(*) FROM (
+      SELECT DISTINCT ano, rede_normalizada
+      FROM `__PROJECT_ID__.alfabetizacao_silver.meta_brasil`
+    )) AS expected_value,
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_brasil`) AS actual_value
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'kpi_uf',
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_silver.int_uf_meta`),
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_uf`)
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'kpi_municipio',
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_silver.int_municipio_meta`),
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`)
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'cobertura_integracao',
+    (SELECT COUNT(*) FROM (
+      SELECT 'MUNICIPIO' AS nivel_territorial, ano, integration_status
+      FROM `__PROJECT_ID__.alfabetizacao_silver.int_municipio_meta`
+      GROUP BY 1, 2, 3
+
+      UNION ALL
+
+      SELECT 'UF' AS nivel_territorial, ano, integration_status
+      FROM `__PROJECT_ID__.alfabetizacao_silver.int_uf_meta`
+      GROUP BY 1, 2, 3
+    )),
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.cobertura_integracao`)
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'distribuicao_niveis_uf',
+    (SELECT COUNT(*) * 9
+     FROM `__PROJECT_ID__.alfabetizacao_silver.resultado_uf`
+     WHERE serie_codigo = '2' AND rede_codigo = '5'),
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.distribuicao_niveis_uf`)
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'resumo_executivo',
+    (SELECT COUNT(*) FROM (
+      SELECT ano FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_brasil`
+      UNION DISTINCT
+      SELECT ano FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_uf`
+      UNION DISTINCT
+      SELECT ano FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`
+    )),
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.resumo_executivo`)
+
+  UNION ALL
+
+  SELECT
+    'RECONCILIATION',
+    'features_modelo_municipio',
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`),
+    (SELECT COUNT(*) FROM `__PROJECT_ID__.alfabetizacao_gold.features_modelo_municipio`)
+
+  UNION ALL
+
+  SELECT
+    'UNIQUENESS',
+    'kpi_brasil',
+    0,
+    (SELECT COUNT(*) FROM (
+      SELECT ano, rede_normalizada
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_brasil`
+      GROUP BY ano, rede_normalizada
+      HAVING COUNT(*) > 1
+    ))
+
+  UNION ALL
+
+  SELECT
+    'UNIQUENESS',
+    'kpi_uf',
+    0,
+    (SELECT COUNT(*) FROM (
+      SELECT ano, sigla_uf
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_uf`
+      GROUP BY ano, sigla_uf
+      HAVING COUNT(*) > 1
+    ))
+
+  UNION ALL
+
+  SELECT
+    'UNIQUENESS',
+    'kpi_municipio',
+    0,
+    (SELECT COUNT(*) FROM (
+      SELECT ano, id_municipio
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`
+      GROUP BY ano, id_municipio
+      HAVING COUNT(*) > 1
+    ))
+
+  UNION ALL
+
+  SELECT
+    'UNIQUENESS',
+    'cobertura_integracao',
+    0,
+    (SELECT COUNT(*) FROM (
+      SELECT nivel_territorial, ano, integration_status
+      FROM `__PROJECT_ID__.alfabetizacao_gold.cobertura_integracao`
+      GROUP BY nivel_territorial, ano, integration_status
+      HAVING COUNT(*) > 1
+    ))
+
+  UNION ALL
+
+  SELECT
+    'VALIDITY',
+    'taxas_gold',
+    0,
+    (
+      SELECT COUNTIF(taxa_alfabetizacao_resultado NOT BETWEEN 0 AND 100)
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_brasil`
+    ) + (
+      SELECT COUNTIF(taxa_alfabetizacao_resultado NOT BETWEEN 0 AND 100)
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_uf`
+    ) + (
+      SELECT COUNTIF(taxa_alfabetizacao_resultado NOT BETWEEN 0 AND 100)
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`
+    )
+
+  UNION ALL
+
+  SELECT
+    'VALIDITY',
+    'participacao_gold',
+    0,
+    (
+      SELECT COUNTIF(percentual_participacao NOT BETWEEN 0 AND 100)
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_brasil`
+    ) + (
+      SELECT COUNTIF(percentual_participacao NOT BETWEEN 0 AND 100)
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_uf`
+    ) + (
+      SELECT COUNTIF(percentual_participacao NOT BETWEEN 0 AND 100)
+      FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`
+    )
+
+  UNION ALL
+
+  SELECT
+    'CONSISTENCY',
+    'status_meta_brasil',
+    0,
+    (SELECT COUNT(*)
+     FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_brasil`
+     WHERE (status_meta = 'ATINGIU_OU_SUPEROU' AND gap_meta_pontos_percentuais < 0)
+        OR (status_meta = 'ABAIXO_DA_META' AND gap_meta_pontos_percentuais >= 0)
+        OR (status_meta = 'SEM_RESULTADO' AND taxa_alfabetizacao_resultado IS NOT NULL)
+        OR (status_meta = 'SEM_META_DO_ANO' AND meta_alfabetizacao IS NOT NULL))
+
+  UNION ALL
+
+  SELECT
+    'CONSISTENCY',
+    'status_meta_uf',
+    0,
+    (SELECT COUNT(*)
+     FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_uf`
+     WHERE (status_meta = 'ATINGIU_OU_SUPEROU' AND gap_meta_pontos_percentuais < 0)
+        OR (status_meta = 'ABAIXO_DA_META' AND gap_meta_pontos_percentuais >= 0)
+        OR (status_meta = 'SEM_RESULTADO' AND taxa_alfabetizacao_resultado IS NOT NULL)
+        OR (status_meta = 'SEM_META_DO_ANO' AND meta_alfabetizacao IS NOT NULL))
+
+  UNION ALL
+
+  SELECT
+    'CONSISTENCY',
+    'status_meta_municipio',
+    0,
+    (SELECT COUNT(*)
+     FROM `__PROJECT_ID__.alfabetizacao_gold.kpi_municipio`
+     WHERE (status_meta = 'ATINGIU_OU_SUPEROU' AND gap_meta_pontos_percentuais < 0)
+        OR (status_meta = 'ABAIXO_DA_META' AND gap_meta_pontos_percentuais >= 0)
+        OR (status_meta = 'SEM_RESULTADO' AND taxa_alfabetizacao_resultado IS NOT NULL)
+        OR (status_meta = 'SEM_META_DO_ANO' AND meta_alfabetizacao IS NOT NULL))
+
+  UNION ALL
+
+  SELECT
+    'VALIDITY',
+    'percentual_cobertura',
+    0,
+    (SELECT COUNT(*)
+     FROM `__PROJECT_ID__.alfabetizacao_gold.cobertura_integracao`
+     WHERE percentual_cobertura NOT BETWEEN 0 AND 100)
+
+  UNION ALL
+
+  SELECT
+    'CONSISTENCY',
+    'soma_percentual_cobertura',
+    0,
+    (SELECT COUNT(*) FROM (
+      SELECT
+        nivel_territorial,
+        ano,
+        SUM(percentual_cobertura) AS soma_percentual
+      FROM `__PROJECT_ID__.alfabetizacao_gold.cobertura_integracao`
+      GROUP BY nivel_territorial, ano
+      HAVING ABS(SUM(percentual_cobertura) - 100) > 0.0001
+    ))
+
+  UNION ALL
+
+  SELECT
+    'CONSISTENCY',
+    'features_target_ano',
+    0,
+    (SELECT COUNT(*)
+     FROM `__PROJECT_ID__.alfabetizacao_gold.features_modelo_municipio`
+     WHERE possui_target_ano_seguinte
+       AND target_ano != ano + 1)
+)
+SELECT
+  check_type,
+  object_name,
+  expected_value,
+  actual_value,
+  IF(expected_value = actual_value, 'OK', 'FAIL') AS status,
+  CURRENT_TIMESTAMP() AS executed_at
+FROM checks;
+
+SELECT *
+FROM `__PROJECT_ID__.alfabetizacao_ops.latest_gold_validation`
+ORDER BY check_type, object_name;

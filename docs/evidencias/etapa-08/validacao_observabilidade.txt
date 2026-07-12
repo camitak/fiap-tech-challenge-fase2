@@ -1,0 +1,15 @@
++----------------+------------------------------+----------------+--------------+--------+---------------------+
+|   check_type   |         object_name          | expected_value | actual_value | status |     executed_at     |
++----------------+------------------------------+----------------+--------------+--------+---------------------+
+| CONSISTENCY    | latest_pipeline_failures     |              0 |            0 | OK     | 2026-07-12 16:06:05 |
+| CONSISTENCY    | quality_failures             |              0 |            0 | OK     | 2026-07-12 16:06:05 |
+| CONSISTENCY    | streaming_publish_time_match |              0 |            0 | OK     | 2026-07-12 16:06:05 |
+| RECONCILIATION | bigquery_usage_daily         |              1 |            1 | OK     | 2026-07-12 16:06:05 |
+| RECONCILIATION | gold_validation_history      |              1 |            1 | OK     | 2026-07-12 16:06:05 |
+| RECONCILIATION | pipeline_health_latest       |              3 |            3 | OK     | 2026-07-12 16:06:05 |
+| RECONCILIATION | silver_validation_history    |              1 |            1 | OK     | 2026-07-12 16:06:05 |
+| RECONCILIATION | streaming_latency_summary    |              1 |            1 | OK     | 2026-07-12 16:06:05 |
+| RECONCILIATION | streaming_validation_history |              1 |            1 | OK     | 2026-07-12 16:06:05 |
+| VALIDITY       | bigquery_negative_usage      |              0 |            0 | OK     | 2026-07-12 16:06:05 |
+| VALIDITY       | negative_streaming_latency   |              0 |            0 | OK     | 2026-07-12 16:06:05 |
++----------------+------------------------------+----------------+--------------+--------+---------------------+

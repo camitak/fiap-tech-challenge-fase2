@@ -47,6 +47,22 @@ WITH checks AS (
   FROM `__PROJECT_ID__.alfabetizacao_ops.streaming_latency_summary`
 
   UNION ALL
+  SELECT
+    'RECONCILIATION',
+    'streaming_latency_summary',
+    1,
+    IF(COUNT(*) > 0, 1, 0)
+  FROM `__PROJECT_ID__.alfabetizacao_ops.streaming_latency_summary`
+
+  UNION ALL
+  SELECT
+    'CONSISTENCY',
+    'streaming_publish_time_match',
+    0,
+    COALESCE(SUM(events_without_publish_time), 0)
+  FROM `__PROJECT_ID__.alfabetizacao_ops.streaming_latency_summary`
+
+  UNION ALL
   SELECT 'RECONCILIATION', 'bigquery_usage_daily', 1, IF(COUNT(*) > 0, 1, 0)
   FROM `__PROJECT_ID__.alfabetizacao_ops.bigquery_usage_daily`
 
